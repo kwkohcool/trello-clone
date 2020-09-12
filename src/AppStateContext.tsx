@@ -1,6 +1,8 @@
 import React, { createContext, useReducer, useContext } from "react";
 import { nanoid } from "nanoid";
 import { findItemIndexById } from "./utils/findItenIndexById";
+import { DragItem } from "./DragItem";
+import { moveItem } from "./moveItem";
 
 interface Task {
   id: string
@@ -31,6 +33,17 @@ type Action =
       type: "ADD_TASK"
       payload: { text: string; listId: string }
     }
+  | {
+      type: "MOVE_LIST"
+      payload: {
+        dragIndex: number
+        hoverIndex: number
+      }
+    }
+  | {
+      type: "SET_DRAGGED_ITEM"
+      payload: DragItem | undefined
+    }
 
 const AppStateContext = createContext<AppStateContextProps>({} as AppStateContextProps);
 
@@ -51,10 +64,11 @@ const appData: AppState = {
       text: "Done",
       tasks: [{ id: "c3", text: "Begin to use static typing" }]
     }
-  ]
+  ],
+  draggedItem: undefined
 }
 
-const AppStateReducer = (state: AppState, action: Action): AppState => {
+const appStateReducer = (state: AppState, action: Action): AppState => {
   switch (action.type) {
     case "ADD_LIST": {
       // Reducer logic here...
@@ -79,6 +93,14 @@ const AppStateReducer = (state: AppState, action: Action): AppState => {
         ...state
       }
     }
+    case "MOVE_LIST": {
+      const { dragIndex, hoverIndex } = action.payload;
+      state.lists = moveItem(state.lists, dragIndex, hoverIndex);
+      return { ...state };
+    }
+    case "SET_DRAGGED_ITEM": {
+      return { ...state, draggedItem: action.payload }
+    }
     default: {
       return state
     }
@@ -86,11 +108,12 @@ const AppStateReducer = (state: AppState, action: Action): AppState => {
 }
 
 export interface AppState {
-  lists: List[]
+  lists: List[];
+  draggedItem: DragItem | undefined;
 }
 
 export const AppStateProvider = ({ children }: React.PropsWithChildren<{}>) => {
-  const [state, dispatch] = useReducer(AppStateReducer, appData);
+  const [state, dispatch] = useReducer(appStateReducer, appData);
 
   return (
     <AppStateContext.Provider value={{ state, dispatch }}>
